@@ -1,0 +1,1006 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>ZubrLite — чат, поиск, перевод и редактор</title>
+  <style>
+    :root {
+      --blue: #0066cc;
+      --blue-light: #4dd0e1;
+      --blue-deep: #0057a3;
+      --border: #a0dcdc;
+      --bg: #e0f7f7;
+      --text: #004d40;
+    }
+    body {
+      background-color: Lightblue;
+      margin: 0;
+      font-family: Arial, sans-serif;
+      color: var(--text);
+    }
+
+    /* Основное окно */
+    .chat-window {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 960px;
+      height: 820px;
+      background-color: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* Верхняя панель */
+    .chat-header {
+      background-color: var(--blue);
+      padding: 10px 12px;
+      border-radius: 12px 12px 0 0;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.15;
+    }
+    .brand .title { font-size: 16px; letter-spacing: 0.3px; font-weight: 700; }
+    .brand .date { font-size: 12px; opacity: 0.95; }
+
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .mode-select {
+      appearance: none;
+      background: #fff;
+      color: var(--blue-deep);
+      border: none;
+      border-radius: 16px;
+      padding: 6px 12px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .circle-btn {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background-color: #007bff;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background-color 0.2s;
+    }
+    .circle-btn:hover { background-color: #1a86ff; }
+
+    .pill-btn {
+      padding: 6px 12px;
+      border-radius: 16px;
+      border: none;
+      cursor: pointer;
+      font-weight: 700;
+      color: #fff;
+      background: #0a68ff;
+    }
+    .pill-btn:hover { background: #115eff; }
+
+    /* Лента сообщений */
+    .chat-messages {
+      flex: 1;
+      padding: 12px;
+      overflow-y: auto;
+      font-size: 15px;
+      background: rgba(255,255,255,0.55);
+    }
+
+    /* Ввод */
+    .chat-input {
+      border-top: 1px solid var(--border);
+      padding: 10px;
+      display: flex;
+      gap: 8px;
+      background: rgba(255,255,255,0.75);
+    }
+    .chat-input input {
+      flex: 1;
+      padding: 8px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      outline: none;
+      background: #fff;
+    }
+    .chat-input button {
+      background-color: var(--blue-light);
+      border: none;
+      border-radius: 8px;
+      padding: 8px 14px;
+      color: white;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      font-weight: bold;
+    }
+    .chat-input button:hover { background-color: #26c6da; }
+
+    /* PM заголовок: изящная цитата */
+    .pm-title {
+      background: #0a68ff;
+      color: #fff;
+      padding: 10px 12px;
+      border-radius: 8px;
+      margin: 8px 0;
+      font-family: "Georgia", "Times New Roman", serif;
+      font-style: italic;
+      font-weight: 600;
+      border-left: 6px solid #003f99;
+      box-shadow: 0 2px 6px rgba(0,60,140,0.25);
+      letter-spacing: 0.2px;
+    }
+
+    /* Боковые панели */
+    .side-panel {
+      position: absolute;
+      right: 0;
+      top: 52px;
+      width: 520px;
+      height: calc(100% - 52px);
+      background: #f7fbff;
+      border-left: 1px solid var(--border);
+      box-shadow: -2px 0 8px rgba(0,0,0,0.08);
+      display: none;
+      flex-direction: column;
+      z-index: 5;
+    }
+    .side-panel.active { display: flex; }
+
+    .panel-header {
+      background: #e6f0ff;
+      padding: 8px 10px;
+      font-weight: bold;
+      color: var(--blue-deep);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .panel-body { flex: 1; overflow: auto; padding: 10px; background: #fff; }
+    .panel-footer {
+      border-top: 1px solid var(--border);
+      padding: 8px 10px;
+      background: #fff;
+      display: flex;
+      gap: 8px;
+    }
+
+    /* Поиск */
+    .search-form { display: flex; gap: 8px; margin-bottom: 10px; }
+    .search-form input {
+      flex: 1; padding: 8px; border: 1px solid var(--border); border-radius: 6px;
+    }
+    .search-form button {
+      padding: 8px 12px; border: none; border-radius: 6px; background: var(--blue); color: #fff; cursor: pointer; font-weight: bold;
+    }
+    .result-link {
+      display: block; margin: 6px 0; color: #0057a3; text-decoration: none; font-weight: 600;
+    }
+    .result-link:hover { text-decoration: underline; }
+    .search-frame { width: 100%; height: 360px; border: 1px solid var(--border); border-radius: 6px; background: #fff; }
+    .note { font-size: 12px; color: #336; opacity: 0.9; margin-top: 6px; }
+
+    /* Перевод */
+    .translate-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;
+    }
+    .translate-select, .translate-text {
+      width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 6px; background: #fff;
+    }
+    .translate-actions { display: flex; gap: 8px; }
+    .translate-actions button {
+      padding: 8px 12px; border: none; border-radius: 6px; background: var(--blue); color: #fff; cursor: pointer; font-weight: bold;
+    }
+
+    /* Редактор */
+    .editor-canvas {
+      position: relative;
+      width: 100%;
+      height: 480px;
+      border: 1px dashed #a0dcdc;
+      border-radius: 8px;
+      background: #f9fcff;
+      overflow: hidden;
+      cursor: default;
+    }
+    .editor-toolbar { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-bottom: 8px; }
+    .editor-toolbar button, .editor-toolbar select, .editor-toolbar input {
+      padding: 8px; border: 1px solid var(--border); border-radius: 6px; background: #fff; cursor: pointer;
+    }
+
+    .block {
+      position: absolute;
+      min-width: 120px;
+      min-height: 40px;
+      border: 1px solid #c7e7ff;
+      border-radius: 6px;
+      background: #ffffff;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+      padding: 8px;
+      user-select: none;
+    }
+    .block .handle {
+      position: absolute; top: -10px; left: -10px;
+      width: 24px; height: 24px; border-radius: 50%;
+      background: #0a68ff; color: #fff; font-size: 14px;
+      display: flex; align-items: center; justify-content: center; cursor: grab;
+      border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+    }
+    .block .content[contenteditable="true"] {
+      outline: none;
+    }
+    .block img { max-width: 100%; max-height: 100%; border-radius: 4px; display: block; }
+
+    .font-serif { font-family: "Georgia", "Times New Roman", serif; }
+    .font-sans { font-family: Arial, Helvetica, sans-serif; }
+    .font-mono { font-family: "Courier New", Courier, monospace; }
+    .font-roboto { font-family: "Roboto", Arial, sans-serif; }
+    .font-playfair { font-family: "Playfair Display", Georgia, serif; }
+    .font-oswald { font-family: "Oswald", Arial, sans-serif; }
+
+    /* Cookie Consent Modal */
+    #cookieModal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    #cookieModal.hidden {
+      display: none;
+    }
+    .modal-content {
+      background-color: var(--bg);
+      padding: 20px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      max-width: 400px;
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    .modal-content h2 {
+      margin-top: 0;
+      color: var(--text);
+    }
+    .consent-buttons {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-top: 15px;
+    }
+    .consent-btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      min-width: 80px;
+    }
+    .consent-yes {
+      background-color: var(--blue-light);
+      color: white;
+    }
+    .consent-no {
+      background-color: #ff6b6b;
+      color: white;
+    }
+    .consent-btn:hover {
+      opacity: 0.8;
+    }
+  </style>
+</head>
+<body>
+  <div class="chat-window">
+    <!-- Верхняя панель -->
+    <div class="chat-header">
+      <div class="brand">
+        <span class="title">Чат с ZubrLite</span>
+        <span class="date">Сегодня: <span id="today"></span></span>
+      </div>
+      <div class="header-controls">
+        <select id="modeSelect" class="mode-select" title="Выберите режим">
+          <option value="standard">Стандартный</option>
+          <option value="school">Школьный</option>
+          <option value="pro">Профессиональный</option>
+        </select>
+        <button class="circle-btn" id="searchBtn" title="Поиск по Яндексу">🔍</button>
+        <button class="circle-btn" id="translateBtn" title="Перевод текста">🌐</button>
+        <button class="pill-btn" id="editorBtn" title="Редактор текста">Редактор текста</button>
+      </div>
+    </div>
+
+    <!-- Сообщения -->
+    <div class="chat-messages" id="chatMessages">
+    </div>
+
+    <!-- Ввод -->
+    <div class="chat-input">
+      <input type="text" id="userInput" placeholder="Введите сообщение... (используйте тег &lt;PM ваш заголовок PM&gt; для синей цитаты)">
+      <button id="sendBtn">Отправить</button>
+    </div>
+
+    <!-- Панель: Поиск -->
+    <div class="side-panel" id="searchPanel">
+      <div class="panel-header">
+        <span>Поиск (Яндекс)</span>
+        <button class="circle-btn" id="closeSearch" title="Закрыть">✕</button>
+      </div>
+      <div class="panel-body">
+        <form class="search-form" id="searchForm">
+          <input type="text" id="searchQuery" placeholder="Опишите задачу или введите запрос..." />
+          <button type="submit">Искать</button>
+        </form>
+        <div id="searchLinks"></div>
+        <iframe id="searchFrame" class="search-frame" src="about:blank" title="Результаты Яндекс"></iframe>
+        <div class="note">Если результаты не отображаются во встроенном окне, нажмите «Открыть в новом окне» — некоторые сайты ограничивают встраивание.</div>
+      </div>
+      <div class="panel-footer">
+        <button id="openExternal">Открыть в новом окне</button>
+      </div>
+    </div>
+
+    <!-- Панель: Перевод через ИИ (Pollinations) -->
+    <div class="side-panel" id="translatePanel">
+      <div class="panel-header">
+        <span>Перевод текста (ZubrLite)</span>
+        <button class="circle-btn" id="closeTranslate" title="Закрыть">✕</button>
+      </div>
+      <div class="panel-body">
+        <div class="translate-grid">
+          <select id="langFrom" class="translate-select" title="С языка">
+            <option value="ru">Русский</option>
+            <option value="be">Белорусский</option>
+            <option value="en">Английский</option>
+            <option value="es">Испанский</option>
+            <option value="fr">Французский</option>
+            <option value="de">Немецкий</option>
+            <option value="it">Итальянский</option>
+            <option value="pt">Португальский</option>
+            <option value="zh">Китайский</option>
+            <option value="ja">Японский</option>
+            <option value="ko">Корейский</option>
+            <option value="ar">Арабский</option>
+            <option value="hi">Хинди</option>
+            <option value="tr">Турецкий</option>
+            <option value="pl">Польский</option>
+            <option value="uk">Украинский</option>
+          </select>
+          <select id="langTo" class="translate-select" title="На язык">
+            <option value="ru">Русский</option>
+            <option value="be">Белорусский</option>
+            <option value="en">Английский</option>
+            <option value="es">Испанский</option>
+            <option value="fr">Французский</option>
+            <option value="de">Немецкий</option>
+            <option value="it">Итальянский</option>
+            <option value="pt">Португальский</option>
+            <option value="zh">Китайский</option>
+            <option value="ja">Японский</option>
+            <option value="ko">Корейский</option>
+            <option value="ar">Арабский</option>
+            <option value="hi">Хинди</option>
+            <option value="tr">Турецкий</option>
+            <option value="pl">Польский</option>
+            <option value="uk">Украинский</option>
+          </select>
+        </div>
+        <textarea id="textFrom" class="translate-text" rows="5" placeholder="Введите текст для перевода..."></textarea>
+        <textarea id="textTo" class="translate-text" rows="5" placeholder="Результат перевода..." readonly></textarea>
+      </div>
+      <div class="panel-footer translate-actions">
+        <button id="swapLangs">Поменять направления</button>
+        <button id="doTranslate">Перевести (AI)</button>
+      </div>
+    </div>
+
+    <!-- Панель: Редактор текста -->
+    <div class="side-panel" id="editorPanel">
+      <div class="panel-header">
+        <span>Редактор текста (мини‑проект)</span>
+        <button class="circle-btn" id="closeEditor" title="Закрыть">✕</button>
+      </div>
+      <div class="panel-body">
+        <div class="editor-toolbar">
+          <button id="addText">Добавить текст</button>
+          <button id="addImageUrl">Картинка по URL</button>
+          <label>
+            Загрузить файл
+            <input type="file" id="addImageFile" accept="image/*" />
+          </label>
+          <select id="fontSelect">
+            <option value="font-sans">Sans (Arial)</option>
+            <option value="font-serif">Serif (Georgia)</option>
+            <option value="font-mono">Monospace (Courier)</option>
+            <option value="font-roboto">Roboto</option>
+            <option value="font-playfair">Playfair</option>
+            <option value="font-oswald">Oswald</option>
+          </select>
+          <input type="color" id="colorPicker" value="#002b5c" />
+          <button id="saveProject">Сохранить</button>
+        </div>
+        <div class="editor-canvas" id="editorCanvas"></div>
+        <div class="note">Подсказка: перетаскивайте блоки за круглую ручку. Клик по тексту — редактирование. Сохранение хранится в браузере и будет доступно при следующем открытии.</div>
+      </div>
+      <div class="panel-footer">
+        <button id="clearProject">Очистить</button>
+        <button id="loadProject">Загрузить сохранённое</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Дата
+    const today = new Date();
+    const todayStr = today.toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" });
+    document.getElementById("today").textContent = todayStr;
+
+    // Ключи для localStorage
+    const CONSENT_KEY = "cookiesAccepted";
+    const CHAT_KEY = "zubrlite_chat_v1";
+    const PROJECT_KEY = "zubrlite_project_v1";
+
+    // Функция получения согласия
+    function getConsent() {
+      return localStorage.getItem(CONSENT_KEY);
+    }
+
+    // Элементы
+    const chatMessages = document.getElementById("chatMessages");
+    const userInput = document.getElementById("userInput");
+    const sendBtn = document.getElementById("sendBtn");
+    const modeSelect = document.getElementById("modeSelect");
+
+    const searchBtn = document.getElementById("searchBtn");
+    const searchPanel = document.getElementById("searchPanel");
+    const closeSearch = document.getElementById("closeSearch");
+    const searchForm = document.getElementById("searchForm");
+    const searchQuery = document.getElementById("searchQuery");
+    const searchLinks = document.getElementById("searchLinks");
+    const searchFrame = document.getElementById("searchFrame");
+    const openExternal = document.getElementById("openExternal");
+
+    const translateBtn = document.getElementById("translateBtn");
+    const translatePanel = document.getElementById("translatePanel");
+    const closeTranslate = document.getElementById("closeTranslate");
+    const langFrom = document.getElementById("langFrom");
+    const langTo = document.getElementById("langTo");
+    const textFrom = document.getElementById("textFrom");
+    const textTo = document.getElementById("textTo");
+    const swapLangs = document.getElementById("swapLangs");
+    const doTranslate = document.getElementById("doTranslate");
+
+    const editorBtn = document.getElementById("editorBtn");
+    const editorPanel = document.getElementById("editorPanel");
+    const closeEditor = document.getElementById("closeEditor");
+    const editorCanvas = document.getElementById("editorCanvas");
+    const addText = document.getElementById("addText");
+    const addImageUrl = document.getElementById("addImageUrl");
+    const addImageFile = document.getElementById("addImageFile");
+    const fontSelect = document.getElementById("fontSelect");
+    const colorPicker = document.getElementById("colorPicker");
+    const saveProject = document.getElementById("saveProject");
+    const loadProject = document.getElementById("loadProject");
+    const clearProject = document.getElementById("clearProject");
+
+    // Инициализация приветственного сообщения
+    function renderWelcome() {
+      renderMessage('<div class="pm-title">ZubrLite активен</div>');
+      renderMessage(`<p><b>ZubrLite:</b> Привет! Я ZubrLite. Я всегда напоминаю, как меня зовут. Сегодня ${todayStr}. Выберите режим и задайте вопрос.</p>`);
+    }
+
+    // Рендер сообщения с поддержкой PM-тега
+    function renderMessage(html) {
+      const transformed = html.replace(/&lt;PM\s*(.*?)\s*PM&gt;/g, (m, p1) => `<div class="pm-title">${p1}</div>`)
+                              .replace(/<PM\s*(.*?)\s*PM>/g, (m, p1) => `<div class="pm-title">${p1}</div>`);
+      chatMessages.insertAdjacentHTML("beforeend", transformed);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    // Сохранение чата
+    function saveChat() {
+      if (getConsent() === 'yes') {
+        localStorage.setItem(CHAT_KEY, chatMessages.innerHTML);
+      }
+    }
+
+    // Загрузка чата
+    function loadChat() {
+      if (getConsent() === 'yes') {
+        const saved = localStorage.getItem(CHAT_KEY);
+        if (saved) {
+          chatMessages.innerHTML = saved;
+          chatMessages.scrollTop = chatMessages.scrollHeight;
+          return true;
+        }
+      }
+      return false;
+    }
+
+    // Экранирование
+    function escapeHtml(str) {
+      return str.replace(/[&<>"']/g, s => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
+      }[s]));
+    }
+    function escapeHtmlKeepingPM(str) {
+      const blocks = [];
+      const marked = str.replace(/<PM[\s\S]*?PM>/g, m => {
+        blocks.push(m);
+        return `__PM_BLOCK_${blocks.length - 1}__`;
+      });
+      const safe = escapeHtml(marked);
+      return safe.replace(/__PM_BLOCK_(\d+)__/g, (_, i) => blocks[i]);
+    }
+
+    // Инструкция для модели
+    function modeDescription() {
+      const map = {
+        standard: "Стандартный: отвечай кратко, ясно и дружелюбно.",
+        school: "Школьный: объясняй простыми словами, пошагово, с примером.",
+        pro: "Профессиональный: давай точные, структурированные, глубоко аргументированные ответы."
+      };
+      return map[modeSelect.value] || map.standard;
+    }
+    function buildInstruction(userText) {
+      return [
+        "Ты — ZubrLite. Всегда упоминай, что тебя зовут ZubrLite.",
+        `Сегодняшняя дата: ${todayStr}.`,
+        "Если в ответе встречается тег <PM текст PM>, отобрази его как синий цитатный заголовок.",
+        modeDescription(),
+        "Отвечай на русском, если пользователь пишет на русском.",
+        "Задача пользователя:",
+        userText
+      ].join("\n");
+    }
+
+    // Отправка в Pollinations
+    async function pollinationsAsk(promptText) {
+      const url = `https://text.pollinations.ai/${encodeURIComponent(promptText)}`;
+      const res = await fetch(url);
+      return res.text();
+    }
+
+    // Отправка обычного сообщения
+    async function sendMessage() {
+      const text = userInput.value.trim();
+      if (!text) return;
+
+      renderMessage(`<p><b>Вы:</b> ${escapeHtml(text)}</p>`);
+      userInput.value = "";
+
+      renderMessage(`<p><b>ZubrLite:</b> Думаю над ответом...</p>`);
+
+      try {
+        const payload = buildInstruction(text);
+        let answerText = await pollinationsAsk(payload);
+
+        if (!/ZubrLite/i.test(answerText)) {
+          answerText = `Я ZubrLite. ${answerText}`;
+        }
+        if (!answerText.includes("<PM")) {
+          answerText = `<PM Ответ от ZubrLite PM>\n` + answerText;
+        }
+
+        // Удалить индикатор
+        const lastIndicator = Array.from(chatMessages.querySelectorAll("p")).pop();
+        if (lastIndicator && lastIndicator.textContent.includes("Думаю над ответом")) {
+          lastIndicator.remove();
+        }
+
+        renderMessage(`<p><b>ZubrLite:</b> ${escapeHtmlKeepingPM(answerText)}</p>`);
+        saveChat(); // Сохранить историю, если согласовано
+      } catch (err) {
+        renderMessage(`<p><b>ZubrLite:</b> Ошибка соединения</p>`);
+        saveChat();
+      }
+    }
+
+    sendBtn.addEventListener("click", sendMessage);
+    userInput.addEventListener("keypress", e => { if (e.key === "Enter") sendMessage(); });
+
+    // Панели
+    function hideAllPanels() {
+      searchPanel.classList.remove("active");
+      translatePanel.classList.remove("active");
+      editorPanel.classList.remove("active");
+    }
+    searchBtn.addEventListener("click", () => { hideAllPanels(); searchPanel.classList.toggle("active"); });
+    closeSearch.addEventListener("click", () => searchPanel.classList.remove("active"));
+    translateBtn.addEventListener("click", () => { hideAllPanels(); translatePanel.classList.toggle("active"); });
+    closeTranslate.addEventListener("click", () => translatePanel.classList.remove("active"));
+    editorBtn.addEventListener("click", () => { hideAllPanels(); editorPanel.classList.toggle("active"); });
+    closeEditor.addEventListener("click", () => editorPanel.classList.remove("active"));
+
+    // Поиск (Яндекс)
+    searchForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const q = searchQuery.value.trim();
+      if (!q) return;
+
+      const yandexUrl = `https://yandex.com/search/?text=${encodeURIComponent(q)}`;
+
+      renderMessage(`<PM Поиск (ZubrLite) PM>`);
+      renderMessage(`<p><b>Вы (поиск):</b> ${escapeHtml(q)}</p>`);
+
+      searchFrame.src = yandexUrl;
+      searchLinks.innerHTML = `
+        <p><a class="result-link" href="${yandexUrl}" target="_blank">Открыть результаты Яндекс для: ${escapeHtml(q)}</a></p>
+        <p class="note">Источники доступны на странице результатов: откройте ссылку выше, чтобы просмотреть конкретные сайты.</p>
+      `;
+      saveChat();
+    });
+    openExternal.addEventListener("click", () => {
+      const url = searchFrame.src || "https://yandex.com/";
+      window.open(url, "_blank");
+    });
+
+    // Перевод через ИИ (Pollinations)
+    swapLangs.addEventListener("click", () => {
+      const from = langFrom.value;
+      langFrom.value = langTo.value;
+      langTo.value = from;
+    });
+
+    function langName(code) {
+      const map = {
+        ru: "русского", be: "белорусского", en: "английского", es: "испанского", fr: "французского",
+        de: "немецкого", it: "итальянского", pt: "португальского", zh: "китайского", ja: "японского",
+        ko: "корейского", ar: "арабского", hi: "хинди", tr: "турецкого", pl: "польского", uk: "украинского"
+      };
+      return map[code] || code;
+    }
+    function langNameTo(code) {
+      const map = {
+        ru: "русский", be: "белорусский", en: "английский", es: "испанский", fr: "французский",
+        de: "немецкий", it: "итальянский", pt: "португальский", zh: "китайский", ja: "японский",
+        ko: "корейский", ar: "арабский", hi: "хинди", tr: "турецкий", pl: "польский", uk: "украинский"
+      };
+      return map[code] || code;
+    }
+
+    doTranslate.addEventListener("click", async () => {
+      const text = textFrom.value.trim();
+      if (!text) return;
+      const source = langFrom.value;
+      const target = langTo.value;
+
+      // Инструкция для модели на перевод
+      const translateInstruction = [
+        "Ты — ZubrLite. Всегда упоминай, что тебя зовут ZubrLite.",
+        `Сегодняшняя дата: ${todayStr}.`,
+        "Если в ответе встречается тег <PM текст PM>, отобрази его как синий цитатный заголовок.",
+        modeDescription(),
+        `Переведи текст с ${langName(source)} на ${langNameTo(target)}. Верни только перевод, без пояснений.`,
+        `<PM Перевод ZubrLite PM>`,
+        text
+      ].join("\n");
+
+      renderMessage(`<p><b>ZubrLite:</b> Выполняю перевод с ${langName(source)} на ${langNameTo(target)}...</p>`);
+
+      try {
+        let translated = await pollinationsAsk(translateInstruction);
+
+        if (!/ZubrLite/i.test(translated)) {
+          translated = `Я ZubrLite. ${translated}`;
+        }
+        if (!translated.includes("<PM")) {
+          translated = `<PM Перевод выполнен ZubrLite PM>\n` + translated;
+        }
+
+        textTo.value = translated.replace(/<PM[\s\S]*?PM>/g, '').trim();
+        renderMessage(`<p><b>ZubrLite:</b> ${escapeHtmlKeepingPM(translated)}</p>`);
+        saveChat();
+      } catch (e) {
+        textTo.value = "Ошибка перевода.";
+        renderMessage(`<p><b>ZubrLite:</b> Ошибка перевода.</p>`);
+        saveChat();
+      }
+    });
+
+    // ========== Редактор мини‑проекта ==========
+    let blocks = []; // {id, type, x, y, w, h, html, fontClass, color}
+
+    function createBlock({ type = "text", x = 40, y = 40, w = 200, h = 80, html = "Текст", fontClass = "font-sans", color = "#002b5c", src = "" } = {}) {
+      const id = "b_" + Math.random().toString(36).slice(2, 9);
+      const el = document.createElement("div");
+      el.className = "block " + fontClass;
+      el.style.left = x + "px";
+      el.style.top = y + "px";
+      el.style.width = w + "px";
+      el.style.height = h + "px";
+      el.style.color = color;
+      el.dataset.id = id;
+      el.dataset.type = type;
+
+      const handle = document.createElement("div");
+      handle.className = "handle";
+      handle.textContent = "⠿";
+      el.appendChild(handle);
+
+      const content = document.createElement("div");
+      content.className = "content";
+      if (type === "text") {
+        content.contentEditable = "true";
+        content.innerHTML = html;
+      } else if (type === "image") {
+        content.innerHTML = `<img src="${src}" alt="image" />`;
+      }
+      el.appendChild(content);
+
+      // Drag
+      let isDragging = false;
+      let startX = 0, startY = 0, startLeft = 0, startTop = 0;
+      handle.addEventListener("mousedown", (e) => {
+        isDragging = true;
+        handle.style.cursor = "grabbing";
+        startX = e.clientX; startY = e.clientY;
+        startLeft = parseInt(el.style.left, 10);
+        startTop = parseInt(el.style.top, 10);
+        document.addEventListener("mousemove", onMove);
+        document.addEventListener("mouseup", onUp);
+        e.preventDefault();
+      });
+      function onMove(e) {
+        if (!isDragging) return;
+        const dx = e.clientX - startX;
+        const dy = e.clientY - startY;
+        el.style.left = (startLeft + dx) + "px";
+        el.style.top = (startTop + dy) + "px";
+      }
+      function onUp() {
+        isDragging = false;
+        handle.style.cursor = "grab";
+        document.removeEventListener("mousemove", onMove);
+        document.removeEventListener("mouseup", onUp);
+      }
+
+      editorCanvas.appendChild(el);
+      blocks.push({
+        id, type, x, y, w, h,
+        html: type === "text" ? content.innerHTML : "",
+        src: type === "image" ? src : "",
+        fontClass, color
+      });
+      // Sync on edits
+      content.addEventListener("input", () => {
+        const b = blocks.find(b => b.id === id);
+        if (b) b.html = content.innerHTML;
+      });
+      return el;
+    }
+
+    addText.addEventListener("click", () => {
+      createBlock({
+        type: "text",
+        html: "Новый текст",
+        fontClass: fontSelect.value,
+        color: colorPicker.value,
+        x: 50 + Math.random() * 80,
+        y: 50 + Math.random() * 80,
+        w: 240, h: 90
+      });
+    });
+
+    addImageUrl.addEventListener("click", () => {
+      const url = prompt("Введите URL изображения:");
+      if (!url) return;
+      createBlock({
+        type: "image",
+        src: url,
+        x: 60 + Math.random() * 80,
+        y: 60 + Math.random() * 80,
+        w: 240, h: 180
+      });
+    });
+
+    addImageFile.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        createBlock({
+          type: "image",
+          src: reader.result,
+          x: 70 + Math.random() * 80,
+          y: 70 + Math.random() * 80,
+          w: 260, h: 200
+        });
+      };
+      reader.readAsDataURL(file);
+      e.target.value = "";
+    });
+
+    // Применение шрифта/цвета к выделенному текстовому блоку (по клику внутрь).
+    let lastFocusedBlockId = null;
+    editorCanvas.addEventListener("click", (e) => {
+      const blockEl = e.target.closest(".block");
+      if (!blockEl) return;
+      lastFocusedBlockId = blockEl.dataset.id;
+      const b = blocks.find(b => b.id === lastFocusedBlockId);
+      if (b && b.type === "text") {
+        // Применим текущие настройки
+        blockEl.className = "block " + fontSelect.value;
+        blockEl.style.color = colorPicker.value;
+        b.fontClass = fontSelect.value;
+        b.color = colorPicker.value;
+      }
+    });
+
+    // Сохранение/загрузка проекта
+    function serializeBlocks() {
+      // Обновим координаты и размеры из DOM
+      blocks = blocks.map(b => {
+        const el = editorCanvas.querySelector(`.block[data-id="${b.id}"]`);
+        if (!el) return b;
+        const rect = el.getBoundingClientRect();
+        const parentRect = editorCanvas.getBoundingClientRect();
+        const content = el.querySelector(".content");
+        return {
+          ...b,
+          x: parseInt(el.style.left, 10) || (rect.left - parentRect.left),
+          y: parseInt(el.style.top, 10) || (rect.top - parentRect.top),
+          w: parseInt(el.style.width, 10) || rect.width,
+          h: parseInt(el.style.height, 10) || rect.height,
+          html: b.type === "text" ? content.innerHTML : b.html
+        };
+      });
+      return blocks;
+    }
+    function saveToLocal() {
+      if (getConsent() !== 'yes') {
+        alert("Сохранение отключено из-за отказа в согласии на cookies.");
+        return;
+      }
+      const data = serializeBlocks();
+      localStorage.setItem(PROJECT_KEY, JSON.stringify(data));
+      alert("Проект сохранён в браузере.");
+    }
+    function loadFromLocal() {
+      if (getConsent() !== 'yes') {
+        alert("Загрузка сохраненного недоступна из-за отказа в согласии на cookies.");
+        return;
+      }
+      const raw = localStorage.getItem(PROJECT_KEY);
+      if (!raw) { alert("Нет сохранённых данных."); return; }
+      const data = JSON.parse(raw);
+      // Очистить холст
+      editorCanvas.innerHTML = "";
+      blocks = [];
+      data.forEach(b => {
+        const el = createBlock(b);
+        el.style.left = b.x + "px";
+        el.style.top = b.y + "px";
+        el.style.width = b.w + "px";
+        el.style.height = b.h + "px";
+        el.className = "block " + (b.fontClass || "font-sans");
+        el.style.color = b.color || "#002b5c";
+        const content = el.querySelector(".content");
+        if (b.type === "text") {
+          content.innerHTML = b.html || "";
+          content.contentEditable = "true";
+        } else if (b.type === "image") {
+          content.innerHTML = `<img src="${b.src}" alt="image" />`;
+        }
+      });
+    }
+
+    saveProject.addEventListener("click", saveToLocal);
+    loadProject.addEventListener("click", loadFromLocal);
+    clearProject.addEventListener("click", () => {
+      if (confirm("Очистить холст?")) {
+        editorCanvas.innerHTML = "";
+        blocks = [];
+      }
+    });
+
+    // Автозагрузка сохранённого при открытии редактора
+    editorBtn.addEventListener("click", () => {
+      if (getConsent() !== 'yes' || !localStorage.getItem(PROJECT_KEY)) return;
+      // Подгрузим молча без алертов
+      const raw = localStorage.getItem(PROJECT_KEY);
+      try {
+        const data = JSON.parse(raw);
+        editorCanvas.innerHTML = "";
+        blocks = [];
+        data.forEach(b => {
+          const el = createBlock(b);
+          el.style.left = b.x + "px";
+          el.style.top = b.y + "px";
+          el.style.width = b.w + "px";
+          el.style.height = b.h + "px";
+          el.className = "block " + (b.fontClass || "font-sans");
+          el.style.color = b.color || "#002b5c";
+          const content = el.querySelector(".content");
+          if (b.type === "text") {
+            content.innerHTML = b.html || "";
+            content.contentEditable = "true";
+          } else if (b.type === "image") {
+            content.innerHTML = `<img src="${b.src}" alt="image" />`;
+          }
+        });
+      } catch {}
+    });
+
+    // Обработка согласия на cookies
+    function showCookieModal() {
+      const modal = document.createElement('div');
+      modal.id = 'cookieModal';
+      modal.innerHTML = `
+        <div class="modal-content">
+          <h2>Согласие на cookies</h2>
+          <p>Мы будем собирать и хранить информацию о вас, если вы принимаете. Принимаете ли вы?</p>
+          <div class="consent-buttons">
+            <button class="consent-btn consent-yes" id="consentYes">Да</button>
+            <button class="consent-btn consent-no" id="consentNo">Нет</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+
+      return new Promise((resolve) => {
+        const yesBtn = modal.querySelector('#consentYes');
+        const noBtn = modal.querySelector('#consentNo');
+
+        yesBtn.addEventListener('click', () => {
+          localStorage.setItem(CONSENT_KEY, 'yes');
+          modal.remove();
+          resolve('yes');
+        });
+
+        noBtn.addEventListener('click', () => {
+          localStorage.setItem(CONSENT_KEY, 'no');
+          // Очистить предыдущие данные при отказе
+          localStorage.removeItem(CHAT_KEY);
+          localStorage.removeItem(PROJECT_KEY);
+          modal.remove();
+          resolve('no');
+        });
+      });
+    }
+
+    // Инициализация
+    async function init() {
+      const consent = getConsent();
+      if (consent === null) {
+        await showCookieModal();
+      }
+      const finalConsent = getConsent();
+      if (finalConsent === 'yes') {
+        loadChat();
+      }
+      if (chatMessages.innerHTML.trim() === '') {
+        renderWelcome();
+      }
+    }
+
+    // Запуск
+    init();
+  </script>
+</body>
+</html>
